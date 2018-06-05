@@ -4,7 +4,7 @@ import os
 import pandas as pd
 
 def dir2df(dirname, endfilt=None, dotfiles=False, dotdirs=False, stats=None,
-**kwargs):
+to_datetime=True, **kwargs):
     '''Recursively generate the filenames in a directory tree using os.walk()
 and store in a DataFrame. With default parameter values 'hidden' files and
 directories (those with names that start with `.`) are ignored.
@@ -38,8 +38,15 @@ stats : str, sequence of str
     If not None, add a column for any of the `st_*` attributes returned in the
     `stat` structure returned by os.stat(). For example,
     `stats=['size', 'mtime']` returns file size in bytes and last modification
-    times from `st_size` and `st_mtime`.
-    
+    times from `st_size` and `st_mtime`. The time-based stats are cast to
+    Pandas Timestamps automatically. Resolution of the time-based stats is
+    dependent on your platform; see the os.stat() documentation.
+
+to_datetime : boolean (default True)
+    If True, any time-based stats (ones that end in `time` or `time_ns`)
+    will be converted from Unix epoch to datetime. If False, the values
+    will not be converted.
+
 kwargs : various
     Remaining kwargs are passed to os.walk(). If not used, then os.walk() will
     be called with default kwargs. Note that using os.walk(topdown=False) is
@@ -101,4 +108,10 @@ dirdf : DataFrame
     df = pd.DataFrame.from_records(recs)
     if len(df) > 0:
         df.relpath = df.relpath.astype('category')
+        if (to_datetime is True) and (stats is not None):
+            for s in stats:
+                if s.endswith('time_ns'):
+                    df.loc[:, s] = pd.to_datetime(df.loc[:, s], unit='ns')
+                elif s.endswith('time'):
+                    df.loc[:, s] = pd.to_datetime(df.loc[:, s], unit='s')
     return df
