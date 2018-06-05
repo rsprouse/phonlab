@@ -2,9 +2,10 @@
 
 import os
 import pandas as pd
+import re
 
-def dir2df(dirname, endfilt=None, dotfiles=False, dotdirs=False, stats=None,
-to_datetime=True, **kwargs):
+def dir2df(dirname, searchpat=None, dirpat=None, dotfiles=False,
+dotdirs=False, stats=None, to_datetime=True, **kwargs):
     '''Recursively generate the filenames in a directory tree using os.walk()
 and store in a DataFrame. With default parameter values 'hidden' files and
 directories (those with names that start with `.`) are ignored.
@@ -20,11 +21,22 @@ dirname : str
 Optional parameters
 -------------------
 
-endfilt : str, sequence of str (default None)
-    Whitelist of filename endings to return in the result. If not None,
-    ignore any filename that does not end with one of the strings defined in
-    `endfilt`. For example, use `['.wav', '.WAV']` to restrict the output to
-    only `.wav` and `.WAV` files.
+searchpat : str, re
+    Regular expression pattern that defines the filenames to return.
+    The only filenames in the result set will be those that return a match
+    for `re.search(searchpat, filename)`.
+
+    If you use named captures in `searchpat`, new columns will appear in
+    the output that correspond to the capture group contents.
+
+    If you need to use a flag with your pattern, you can use a precompiled
+    regex for the value of `searchpat`. For example, you can do
+    case-insensitive matching of '.wav' and '.WAV' files with
+    `re.compile(r'.wav$', re.IGNORECASE)`.
+
+dirpat : str, re
+    Like searchpat, only applied against the relative path in dirname.
+    Relative paths that do not match `dirpat` will be skipped.
 
 dotfiles : boolean (default False)
     If True, include filenames beginning with `.` in the output. Otherwise,
@@ -59,18 +71,13 @@ Returns
 dirdf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
 '''
-    if endfilt is not None:
-        # If endfilt is a str, cast to list of str so that
-        # tuple(endfilt) does not break up the str into a sequence
-        # of characters, e.g. '.wav' -> ('.', 'w', 'a', 'v').
-        if endfilt == str(endfilt):
-            endfilt = [endfilt]
-        # Cast to tuple, since that's what ''.endswith() needs.
-        endfilt = tuple(endfilt)
+    if searchpat is not None:
+        searchpat = re.compile(searchpat)
+    if dirpat is not None:
+        dirpat = re.compile(dirpat)
 
     # Cast stats to a list, if str.
-    if stats is not None and stats == str(stats):
-        stats = [stats]
+    stats = [stats] if stats == str(stats) else stats
 
     if dotdirs is False:
         try:
@@ -84,11 +91,20 @@ dirdf : DataFrame
     recs = []
     for root, dirs, files in os.walk(dirname, **kwargs):
         for name in files:
-            if (endfilt is not None) and (not name.endswith(endfilt)):
-                continue
+            patcols = {}
+            if searchpat is not None:
+                m = searchpat.search(name)
+                if m is None:
+                    continue
+                elif len(m.groupdict()) > 0:
+                    # Add named capture groups and replace unmatched optional
+                    # named captures with empty string.
+                    for k, v in m.groupdict().items():
+                        patcols[k] = v if v is not None else ''
             if (dotfiles is False) and (name[0] == '.'):
                 continue
             rec = {
+                **patcols,
                 'filename': name,
                 'relpath': os.path.relpath(root, dirname)
             }
@@ -101,7 +117,10 @@ dirdf : DataFrame
                     rec[attr] = getattr(st, stattr)
             recs.append(rec)
 
-        # Remove '.' directories.
+        # Change dirs in-place to prevent os.walk() from descending into
+        # '.' directories or directories that do not match dirpat.
+        if dirpat is not None:
+            dirs[:] = [d for d in dirs if dirpat.search(d)]
         if dotdirs is False:
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
