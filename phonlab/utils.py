@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import re
 
-def dir2df(dirname, searchpat=None, dirpat=None, stats=None,
+def dir2df(dirname, fnpat=None, dirpat=None, stats=None,
 to_datetime=True, dotfiles=False, dotdirs=False, **kwargs):
     '''dir2df(): Recursively generate the filenames in a directory tree
 using os.walk() and store as rows of a DataFrame. With default parameter
@@ -22,21 +22,21 @@ dirname : str
 Optional parameters
 -------------------
 
-searchpat : str, re
+fnpat : str, re
     Regular expression pattern that defines the filenames to return.
     The only filenames in the result set will be those that return a match
-    for `re.search(searchpat, filename)`.
+    for `re.search(fnpat, filename)`.
 
-    If you use named captures in `searchpat`, new columns will appear in
+    If you use named captures in `fnpat`, new columns will appear in
     the output that correspond to the capture group contents.
 
     If you need to use a flag with your pattern, you can use a precompiled
-    regex for the value of `searchpat`. For example, you can do
+    regex for the value of `fnpat`. For example, you can do
     case-insensitive matching of '.wav' and '.WAV' files with
     `re.compile(r'\.wav$', re.IGNORECASE)`.
 
 dirpat : str, re
-    Like `searchpat`, only applied against the relative path in dirname.
+    Like `fnpat`, only applied against the relative path in dirname.
     Relative paths that do not match `dirpat` will be skipped.
 
 stats : str, sequence of str
@@ -74,8 +74,8 @@ fnamedf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
 
 '''
-    if searchpat is not None:
-        searchpat = re.compile(searchpat)
+    if fnpat is not None:
+        fnpat = re.compile(fnpat)
     if dirpat is not None:
         dirpat = re.compile(dirpat)
 
@@ -105,8 +105,8 @@ fnamedf : DataFrame
                     dircols[k] = v if v is not None else ''
         for name in files:
             patcols = {}
-            if searchpat is not None:
-                m = searchpat.search(name)
+            if fnpat is not None:
+                m = fnpat.search(name)
                 if m is None:
                     continue
                 elif len(m.groupdict()) > 0:
