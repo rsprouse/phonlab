@@ -93,9 +93,10 @@ fnamedf : DataFrame
 
     recs = []
     for root, dirs, files in os.walk(dirname, **kwargs):
+        relpath = os.path.relpath(root, dirname)
         dircols = {}
         if dirpat is not None:
-            dirm = dirpat.search(root)
+            dirm = dirpat.search(relpath)
             if dirm is None:
                 continue
             elif len(dirm.groupdict()) > 0:
@@ -104,7 +105,7 @@ fnamedf : DataFrame
                 for k, v in dirm.groupdict().items():
                     dircols[k] = v if v is not None else ''
         for name in files:
-            patcols = {}
+            fncols = {}
             if fnpat is not None:
                 m = fnpat.search(name)
                 if m is None:
@@ -113,14 +114,14 @@ fnamedf : DataFrame
                     # Add named capture groups and replace unmatched optional
                     # named captures with empty string.
                     for k, v in m.groupdict().items():
-                        patcols[k] = v if v is not None else ''
+                        fncols[k] = v if v is not None else ''
             if (dotfiles is False) and (name[0] == '.'):
                 continue
             rec = {
                 **dircols,
-                **patcols,
+                **fncols,
                 'filename': name,
-                'relpath': os.path.relpath(root, dirname)
+                'relpath': relpath
             }
             if stats is not None:
                 st = os.stat(os.path.join(root, name))
