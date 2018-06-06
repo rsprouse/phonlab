@@ -4,18 +4,19 @@ import os
 import pandas as pd
 import re
 
-def dir2df(dirname, searchpat=None, dirpat=None, dotfiles=False,
-dotdirs=False, stats=None, to_datetime=True, **kwargs):
-    '''Recursively generate the filenames in a directory tree using os.walk()
-and store in a DataFrame. With default parameter values 'hidden' files and
-directories (those with names that start with `.`) are ignored.
+def dir2df(dirname, searchpat=None, dirpat=None, stats=None,
+to_datetime=True, dotfiles=False, dotdirs=False, **kwargs):
+    '''dir2df(): Recursively generate the filenames in a directory tree
+using os.walk() and store as rows of a DataFrame. With default parameter
+values 'hidden' files and directories (those with names that start with `.`)
+are ignored.
 
 
 Parameters
 ----------
 
 dirname : str
-    Name of directory to search for filenames.
+    Top-level directory name for filename search.
 
 
 Optional parameters
@@ -32,11 +33,25 @@ searchpat : str, re
     If you need to use a flag with your pattern, you can use a precompiled
     regex for the value of `searchpat`. For example, you can do
     case-insensitive matching of '.wav' and '.WAV' files with
-    `re.compile(r'.wav$', re.IGNORECASE)`.
+    `re.compile(r'\.wav$', re.IGNORECASE)`.
 
 dirpat : str, re
-    Like searchpat, only applied against the relative path in dirname.
+    Like `searchpat`, only applied against the relative path in dirname.
     Relative paths that do not match `dirpat` will be skipped.
+
+stats : str, sequence of str
+    If not None, add a column for any of the `st_*` attributes in the
+    `stat` structure returned by os.stat(). For example,
+    `stats=['size', 'mtime']` returns file size in bytes and last modification
+    times from `st_size` and `st_mtime`. The time-based stats are cast to
+    Pandas Timestamps automatically unless `to_datetime` is False. Resolution
+    of the time-based stats is dependent on your platform; see the os.stat()
+    documentation.
+
+to_datetime : boolean (default True)
+    If True, any time-based stats (ones that end in `time` or `time_ns`)
+    will be converted from Unix epoch to datetime. If False, the values
+    will not be converted.
 
 dotfiles : boolean (default False)
     If True, include filenames beginning with `.` in the output. Otherwise,
@@ -44,20 +59,7 @@ dotfiles : boolean (default False)
 
 dotdirs : boolean (default False)
     If True, descend into directories with names that begin with `.`. If
-    False, skip these directories.
-
-stats : str, sequence of str
-    If not None, add a column for any of the `st_*` attributes returned in the
-    `stat` structure returned by os.stat(). For example,
-    `stats=['size', 'mtime']` returns file size in bytes and last modification
-    times from `st_size` and `st_mtime`. The time-based stats are cast to
-    Pandas Timestamps automatically. Resolution of the time-based stats is
-    dependent on your platform; see the os.stat() documentation.
-
-to_datetime : boolean (default True)
-    If True, any time-based stats (ones that end in `time` or `time_ns`)
-    will be converted from Unix epoch to datetime. If False, the values
-    will not be converted.
+    False, do not descend into these directories.
 
 kwargs : various
     Remaining kwargs are passed to os.walk(). If not used, then os.walk() will
@@ -68,7 +70,7 @@ kwargs : various
 Returns
 -------
 
-dirdf : DataFrame
+fnamedf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
 
 '''
