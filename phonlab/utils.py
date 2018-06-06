@@ -70,6 +70,7 @@ Returns
 
 dirdf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
+
 '''
     if searchpat is not None:
         searchpat = re.compile(searchpat)
@@ -90,6 +91,16 @@ dirdf : DataFrame
 
     recs = []
     for root, dirs, files in os.walk(dirname, **kwargs):
+        dircols = {}
+        if dirpat is not None:
+            dirm = dirpat.search(root)
+            if dirm is None:
+                continue
+            elif len(dirm.groupdict()) > 0:
+                # Add named capture groups and replace unmatched optional
+                # named captures with empty string.
+                for k, v in dirm.groupdict().items():
+                    dircols[k] = v if v is not None else ''
         for name in files:
             patcols = {}
             if searchpat is not None:
@@ -104,6 +115,7 @@ dirdf : DataFrame
             if (dotfiles is False) and (name[0] == '.'):
                 continue
             rec = {
+                **dircols,
                 **patcols,
                 'filename': name,
                 'relpath': os.path.relpath(root, dirname)
@@ -118,9 +130,7 @@ dirdf : DataFrame
             recs.append(rec)
 
         # Change dirs in-place to prevent os.walk() from descending into
-        # '.' directories or directories that do not match dirpat.
-        if dirpat is not None:
-            dirs[:] = [d for d in dirs if dirpat.search(d)]
+        # '.' directories.
         if dotdirs is False:
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
