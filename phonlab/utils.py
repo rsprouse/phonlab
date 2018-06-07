@@ -4,12 +4,14 @@ import os
 import pandas as pd
 import re
 
-def dir2df(dirname, fnpat=None, dirpat=None, stats=None,
+def dir2df(dirname, fnpat=None, dirpat=None, stats=None, sentinel='.bad.txt',
 to_datetime=True, dotfiles=False, dotdirs=False, **kwargs):
     '''dir2df(): Recursively generate the filenames in a directory tree
-using os.walk() and store as rows of a DataFrame. With default parameter
-values 'hidden' files and directories (those with names that start with `.`)
-are ignored.
+using os.walk() and store as rows of a DataFrame.
+
+'Hidden' files and directories (those with names that start with '.') are
+ignored by default. dir2df() will also not descend into a directory tree that
+contains a sentinel file (default name '.bad.txt').
 
 
 Parameters
@@ -27,8 +29,8 @@ fnpat : str, re
     The only filenames in the result set will be those that return a match
     for `re.search(fnpat, filename)`.
 
-    If you use named captures in `fnpat`, new columns will appear in
-    the output that correspond to the capture group contents.
+    If you use named captures in `fnpat`, new columns of dtype 'Categorical'
+    will appear in the output that correspond to the capture group contents.
 
     If you need to use a flag with your pattern, you can use a precompiled
     regex for the value of `fnpat`. For example, you can do
@@ -43,10 +45,20 @@ stats : str, sequence of str
     If not None, add a column for any of the `st_*` attributes in the
     `stat` structure returned by os.stat(). For example,
     `stats=['size', 'mtime']` returns file size in bytes and last modification
-    times from `st_size` and `st_mtime`. The time-based stats are cast to
-    Pandas Timestamps automatically unless `to_datetime` is False. Resolution
-    of the time-based stats is dependent on your platform; see the os.stat()
-    documentation.
+    times from `st_size` and `st_mtime`. If 'size' is requested, the added
+    column is named 'bytes' to avoid conflicting with the DataFrame 'size'
+    attribute.  
+
+    The time-based stats are cast to Pandas Timestamps automatically unless
+    `to_datetime` is False. Resolution of the time-based stats is dependent
+    on your platform; see the os.stat() documentation.
+
+sentinel : str (default '.bad.txt')
+    Name of the sentinel file, which marks a directory tree to be ignored. No
+    filenames from the directory containing the sentinel file will be included
+    in the output, nor will any filenames from any of its subdirectories.
+    If the value of `sentinel` is '' or None, the sentinel file check will not
+    be performed.
 
 to_datetime : boolean (default True)
     If True, any time-based stats (ones that end in `time` or `time_ns`)
@@ -81,6 +93,11 @@ fnamedf : DataFrame
 
     # Cast stats to a list, if str.
     stats = [stats] if stats == str(stats) else stats
+    if stats is not None:
+        # Handle 'bytes' as an alias for 'size'
+        stats = [s if s != 'bytes' else 'size' for s in stats]
+        # Add 'st_' prefix, if necessary.
+        stats = [s if s.startswith('st_') else 'st_' + s for s in stats]
 
     if dotdirs is False:
         try:
@@ -92,13 +109,17 @@ fnamedf : DataFrame
             pass
 
     recs = []
+    namedcaptures = []
     for root, dirs, files in os.walk(dirname, **kwargs):
+        if sentinel in files:
+            dirs[:] = []  # Do not descend into subdirectories.
+            continue      # Do not include files in this directory.
         relpath = os.path.relpath(root, dirname)
         dircols = {}
         if dirpat is not None:
             dirm = dirpat.search(relpath)
             if dirm is None:
-                continue
+                continue # Do not include files in this directory.
             elif len(dirm.groupdict()) > 0:
                 # Add named capture groups and replace unmatched optional
                 # named captures with empty string.
@@ -109,7 +130,7 @@ fnamedf : DataFrame
             if fnpat is not None:
                 m = fnpat.search(name)
                 if m is None:
-                    continue
+                    continue # Do not include this file.
                 elif len(m.groupdict()) > 0:
                     # Add named capture groups and replace unmatched optional
                     # named captures with empty string.
@@ -117,6 +138,8 @@ fnamedf : DataFrame
                         fncols[k] = v if v is not None else ''
             if (dotfiles is False) and (name[0] == '.'):
                 continue
+            if namedcaptures == []:
+                namedcaptures = list(dircols.keys()) + list(fncols.keys())
             rec = {
                 **dircols,
                 **fncols,
@@ -126,10 +149,12 @@ fnamedf : DataFrame
             if stats is not None:
                 st = os.stat(os.path.join(root, name))
                 for attr in stats:
-                    stattr = attr
-                    if not stattr.startswith('st_'):
-                        stattr = 'st_' + stattr
-                    rec[attr] = getattr(st, stattr)
+                    val = getattr(st, attr)
+                    # Rename 'size' to avoid conflict with df size attribute.
+                    if attr == 'st_size': 
+                        attr = 'st_bytes'
+                    # Use string slice notation [3:] to trim 'st_' prefix.
+                    rec[attr[3:]] = val
             recs.append(rec)
 
         # Change dirs in-place to prevent os.walk() from descending into
@@ -138,10 +163,16 @@ fnamedf : DataFrame
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
     df = pd.DataFrame.from_records(recs)
+    df = df.sort_values(by=['relpath', 'filename'], axis='rows').reset_index()
     if len(df) > 0:
         df.relpath = df.relpath.astype('category')
+        # Cast named captured columns to Categorical.
+        for col in namedcaptures:
+            df.loc[:, col] = df.loc[:, col].astype('category')
         if (to_datetime is True) and (stats is not None):
             for s in stats:
+                # Use string slice notation [3:] to trim 'st_' prefix.
+                s = s[3:]
                 if s.endswith('time_ns'):
                     df.loc[:, s] = pd.to_datetime(df.loc[:, s], unit='ns')
                 elif s.endswith('time'):
