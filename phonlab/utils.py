@@ -163,7 +163,9 @@ fnamedf : DataFrame
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
     df = pd.DataFrame.from_records(recs)
-    df = df.sort_values(by=['relpath', 'filename'], axis='rows').reset_index()
+    df = df.sort_values(
+        by=['relpath', 'filename'], axis='rows'
+    ).reset_index(drop=True)
     if len(df) > 0:
         df.relpath = df.relpath.astype('category')
         # Cast named captured columns to Categorical.
