@@ -140,12 +140,10 @@ fnamedf : DataFrame
                 continue
             if namedcaptures == []:
                 namedcaptures = list(dircols.keys()) + list(fncols.keys())
-            rec = {
-                **dircols,
-                **fncols,
-                'filename': name,
-                'relpath': relpath
-            }
+            rec = [
+                relpath,
+                name
+            ] + list(dircols.values()) + list(fncols.values())
             if stats is not None:
                 st = os.stat(os.path.join(root, name))
                 for attr in stats:
@@ -162,7 +160,7 @@ fnamedf : DataFrame
         if dotdirs is False:
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
-    df = pd.DataFrame.from_records(recs)
+    df = pd.DataFrame(recs, columns=['relpath', 'filename'] + namedcaptures)
     df = df.sort_values(
         by=['relpath', 'filename'], axis='rows'
     ).reset_index(drop=True)
