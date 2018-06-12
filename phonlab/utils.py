@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import re
 
-def dir2df(dirname, fnpat=None, dirpat=None, stats=None, sentinel='.bad.txt',
+def dir2df(dirname, addcols=[], fnpat=None, dirpat=None, sentinel='.bad.txt',
 to_datetime=True, dotfiles=False, dotdirs=False, **kwargs):
     '''dir2df(): Recursively generate the filenames in a directory tree
 using os.walk() and store as rows of a DataFrame.
@@ -60,6 +60,15 @@ sentinel : str (default '.bad.txt')
     If the value of `sentinel` is '' or None, the sentinel file check will not
     be performed.
 
+addcols = str, list of str (default [])
+    One or more additional columns to include in the output. Possible names
+    and values provided are:
+    'dirname': the user-provided top-level directory
+    'barename': the filename without path or extension
+    'ext': the filename extension
+    'mtime': the last modification time of the file
+    'bytes': the size of the file in bytes
+
 to_datetime : boolean (default True)
     If True, any time-based stats (ones that end in `time` or `time_ns`)
     will be converted from Unix epoch to datetime. If False, the values
@@ -86,18 +95,36 @@ fnamedf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
 
 '''
-    if fnpat is not None:
-        fnpat = re.compile(fnpat)
+    if 'dirname' in addcols:
+        firstcols = ['dirname', 'relpath', 'fname']
+        addcols[:] = [c for c in addcols if c != 'dirname']
+    else:
+        firstcols = ['relpath', 'fname']
+    mdcols = []  # Names of additional metadata columns from named captures.
     if dirpat is not None:
         dirpat = re.compile(dirpat)
+        dirmdcols = list(dirpat.groupindex.keys())
+        for c in dirmdcols:
+            try:
+                assert(c not in firstcols + addcols)
+            except AssertionError:
+                msg = 'Named group {:} masks another output column.'.format(c)
+                raise RuntimeError(msg)
+        mdcols += dirmdcols
+    if fnpat is not None:
+        fnpat = re.compile(fnpat)
+        fnmdcols = list(fnpat.groupindex.keys())
+        for c in fnmdcols:
+            try:
+                assert(c not in firstcols + addcols + mdcols)
+            except AssertionError:
+                msg = 'Named group {:} masks another output column.'.format(c)
+                raise RuntimeError(msg)
+        mdcols += fnmdcols
 
-    # Cast stats to a list, if str.
-    stats = [stats] if stats == str(stats) else stats
-    if stats is not None:
-        # Handle 'bytes' as an alias for 'size'
-        stats = [s if s != 'bytes' else 'size' for s in stats]
-        # Add 'st_' prefix, if necessary.
-        stats = [s if s.startswith('st_') else 'st_' + s for s in stats]
+    stats = {'bytes': 'st_size'} if 'bytes' in addcols else {}
+    if 'mtime' in addcols:
+        stats['mtime'] = 'st_mtime'
 
     if dotdirs is False:
         try:
@@ -109,65 +136,73 @@ fnamedf : DataFrame
             pass
 
     recs = []
-    namedcaptures = []
     for root, dirs, files in os.walk(dirname, **kwargs):
         if sentinel in files:
             dirs[:] = []  # Do not descend into subdirectories.
             continue      # Do not include files in this directory.
         relpath = os.path.relpath(root, dirname)
-        dircols = {}
+        dircols = []
         if dirpat is not None:
             dirm = dirpat.search(relpath)
             if dirm is None:
                 continue # Do not include files in this directory.
-            elif len(dirm.groupdict()) > 0:
-                # Add named capture groups and replace unmatched optional
-                # named captures with empty string.
-                for k, v in dirm.groupdict().items():
-                    dircols[k] = v if v is not None else ''
+            # Add named capture groups and replace unmatched optional
+            # named captures with empty string.
+            dircols = [
+                '' if s is None else s for s in dirm.groupdict().values()
+            ]
         for name in files:
-            fncols = {}
-            if fnpat is not None:
-                m = fnpat.search(name)
-                if m is None:
-                    continue # Do not include this file.
-                elif len(m.groupdict()) > 0:
-                    # Add named capture groups and replace unmatched optional
-                    # named captures with empty string.
-                    for k, v in m.groupdict().items():
-                        fncols[k] = v if v is not None else ''
             if (dotfiles is False) and (name[0] == '.'):
                 continue
-            if namedcaptures == []:
-                namedcaptures = list(dircols.keys()) + list(fncols.keys())
-            rec = [
-                relpath,
-                name
-            ] + list(dircols.values()) + list(fncols.values())
-            if stats is not None:
+            fncols = []
+            if fnpat is not None:
+                fnm = fnpat.search(name)
+                if fnm is None:
+                    continue # Do not include this file.
+                # Add named capture groups and replace unmatched optional
+                # named captures with empty string.
+                fncols = [
+                    '' if s is None else s for s in fnm.groupdict().values()
+                ]
+            reccols = []
+            if stats != {}:
                 st = os.stat(os.path.join(root, name))
-                for attr in stats:
-                    val = getattr(st, attr)
-                    # Rename 'size' to avoid conflict with df size attribute.
-                    if attr == 'st_size': 
-                        attr = 'st_bytes'
-                    # Use string slice notation [3:] to trim 'st_' prefix.
-                    rec[attr[3:]] = val
-            recs.append(rec)
+            if ('barename' in addcols) or ('ext' in addcols):
+                (barename, ext) = os.path.splitext(name)
+            for col in firstcols + addcols:
+                if col in ['bytes', 'mtime']:
+                    reccols += [getattr(st, stats[col])]
+                elif col == 'relpath':
+                    reccols += [relpath]
+                elif col == 'fname':
+                    reccols += [name]
+                elif col == 'dirname':
+                    reccols += [dirname]
+                elif col == 'barename':
+                    reccols += [barename]
+                elif col == 'ext':
+                    reccols += [ext]
+            recs.append(reccols + dircols + fncols)
 
         # Change dirs in-place to prevent os.walk() from descending into
         # '.' directories.
         if dotdirs is False:
             dirs[:] = [d for d in dirs if not d[0] == '.']
 
-    df = pd.DataFrame(recs, columns=['relpath', 'filename'] + namedcaptures)
+    df = pd.DataFrame(
+        recs,
+        columns=firstcols + addcols + mdcols
+    )
     df = df.sort_values(
-        by=['relpath', 'filename'], axis='rows'
+        by=['relpath', 'fname'], axis='rows'
     ).reset_index(drop=True)
     if len(df) > 0:
+        if 'dirname' in firstcols:
+            df.dirname = df.dirname.astype('category')
         df.relpath = df.relpath.astype('category')
+        df.fname = df.fname.astype('category')
         # Cast named captured columns to Categorical.
-        for col in namedcaptures:
+        for col in mdcols:
             df.loc[:, col] = df.loc[:, col].astype('category')
         if (to_datetime is True) and (stats is not None):
             for s in stats:
