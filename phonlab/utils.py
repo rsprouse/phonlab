@@ -41,18 +41,6 @@ dirpat : str, re
     Like `fnpat`, only applied against the relative path in dirname.
     Relative paths that do not match `dirpat` will be skipped.
 
-stats : str, sequence of str
-    If not None, add a column for any of the `st_*` attributes in the
-    `stat` structure returned by os.stat(). For example,
-    `stats=['size', 'mtime']` returns file size in bytes and last modification
-    times from `st_size` and `st_mtime`. If 'size' is requested, the added
-    column is named 'bytes' to avoid conflicting with the DataFrame 'size'
-    attribute.  
-
-    The time-based stats are cast to Pandas Timestamps automatically unless
-    `to_datetime` is False. Resolution of the time-based stats is dependent
-    on your platform; see the os.stat() documentation.
-
 sentinel : str (default '.bad.txt')
     Name of the sentinel file, which marks a directory tree to be ignored. No
     filenames from the directory containing the sentinel file will be included
@@ -69,10 +57,13 @@ addcols = str, list of str (default [])
     'mtime': the last modification time of the file
     'bytes': the size of the file in bytes
 
+    The 'mtime' column is cast to Pandas Timestamps automatically unless
+    `to_datetime` is False. Resolution of the time-based stats is dependent
+    on your platform; see the os.stat() documentation.
+
 to_datetime : boolean (default True)
-    If True, any time-based stats (ones that end in `time` or `time_ns`)
-    will be converted from Unix epoch to datetime. If False, the values
-    will not be converted.
+    If True, 'mtime' stats will be converted from Unix epoch to datetime.
+    If False, the values will not be converted.
 
 dotfiles : boolean (default False)
     If True, include filenames beginning with `.` in the output. Otherwise,
@@ -201,15 +192,13 @@ fnamedf : DataFrame
             df.dirname = df.dirname.astype('category')
         df.relpath = df.relpath.astype('category')
         df.fname = df.fname.astype('category')
+        if 'barename' in addcols:
+            df.barename = df.barename.astype('category')
+        if 'ext' in addcols:
+            df.ext = df.ext.astype('category')
         # Cast named captured columns to Categorical.
         for col in mdcols:
             df.loc[:, col] = df.loc[:, col].astype('category')
-        if (to_datetime is True) and (stats is not None):
-            for s in stats:
-                # Use string slice notation [3:] to trim 'st_' prefix.
-                s = s[3:]
-                if s.endswith('time_ns'):
-                    df.loc[:, s] = pd.to_datetime(df.loc[:, s], unit='ns')
-                elif s.endswith('time'):
-                    df.loc[:, s] = pd.to_datetime(df.loc[:, s], unit='s')
+        if to_datetime is True and 'mtime' in df.columns:
+            df.loc[:, 'mtime'] = pd.to_datetime(df.loc[:, 'mtime'], unit='s')
     return df
