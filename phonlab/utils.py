@@ -13,6 +13,8 @@ using os.walk() and store as rows of a DataFrame.
 ignored by default. dir2df() will also not descend into a directory tree that
 contains a sentinel file (default name '.bad.txt').
 
+Additional parameters can be used to filter which filepaths to include in the
+output, and also to add additional file metadata.
 
 Parameters
 ----------
