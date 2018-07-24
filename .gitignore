@@ -103,7 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+.DS_Store
+
 # Files generated as notebook output
-resource/mirrorexp/ds_files
-resource/mirrorexp/ds_file_from_df
+resource/mirrorexp/cache
 
