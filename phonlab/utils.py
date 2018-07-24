@@ -88,6 +88,19 @@ fnamedf : DataFrame
     Pandas DataFrame with filenames recorded in rows.
 
 '''
+    # Coerce addcols to list if passed as single string.
+    try:
+        assert isinstance(addcols, basestring) # Python 2
+        addcols = [addcols]
+    except AssertionError:
+        pass   # Should be a list already.
+    except NameError:
+        try:
+            assert isinstance(addcols, str) # Python 3
+            addcols = [addcols]
+        except AssertionError:
+            pass   # Should be a list already.
+
     if 'dirname' in addcols:
         firstcols = ['dirname', 'relpath', 'fname']
         addcols[:] = [c for c in addcols if c != 'dirname']
