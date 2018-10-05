@@ -2,7 +2,61 @@
 
 import os
 import pandas as pd
+import numpy as np
 import re
+import fnmatch
+import shutil
+
+def cp_backup(fname, bkdir=None, hidden=True):
+    '''Make a backup copy of the file `fname` and return the name of the copied
+file. By default the copy will have the same name as `fname` with '.' prepended
+and a suffix of the form '.N', where N is an integer. Multiple calls to this
+function result in increasing values of N, starting with '1'.
+
+Parameters
+----------
+
+fname : str
+    The name of the file to be copied.
+
+bkdir : str (default: None)
+    By default, the backup file will be written in the same directory
+    as the source file. If `bkdir` is provided, the backup file
+    will be written to that path instead.
+
+    A `FileNotFoundError` will be thrown if the backup directory does not
+    exist.
+
+hidden : bool (default: True)
+    If True, prepend '.' to the backup filename, resulting in a
+    'hidden' file. If not True, do not prepend anything.
+
+Returns
+-------
+
+dst : str
+    The name of the copied backup file.
+'''
+    if bkdir is None:
+        bkdir = os.path.dirname(fname) if os.path.dirname(fname) != '' else '.'
+    basename = os.path.basename(fname)
+    cpname = '.' + basename if hidden is True else basename
+
+    # Get extension integers from backups that already exist and find max N.
+    rgx = re.compile(
+        fnmatch.translate(cpname).replace('\Z', '\.[0-9]+\Z')
+    )
+    Ns = np.array([
+        int(os.path.splitext(f)[1].lstrip('.')) \
+            for f in os.listdir(bkdir) if rgx.fullmatch(f)
+    ], dtype=int)
+    maxN = 0 if len(Ns) == 0 else Ns.max()
+
+    cpname += '.{:d}'.format(maxN + 1)
+    dst = os.path.join(bkdir, cpname)
+    shutil.copyfile(fname, dst)
+    return dst
+
 
 def dir2df(dirname, addcols=[], fnpat=None, dirpat=None, sentinel='.bad.txt',
 to_datetime=True, dotfiles=False, dotdirs=False, **kwargs):
