@@ -7,7 +7,7 @@ setup(
   packages = ['phonlab'],
   scripts = [
   ],
-  package_data = {'phonlab': ['data/arpabet2ipa.csv']},
+  package_data = {'phonlab': ['data/phonemap.txt']},
   classifiers = [
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering'
