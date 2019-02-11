@@ -7,6 +7,7 @@ setup(
   packages = ['phonlab'],
   scripts = [
   ],
+  package_data = {'phonlab': ['data/arpabet2ipa.csv']},
   classifiers = [
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering'
