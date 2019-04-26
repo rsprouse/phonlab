@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
   name = 'phonlab',
-  packages = ['phonlab', 'phonlab/third_party'],
+  packages = ['phonlab', 'phonlab.third_party'],
   scripts = [
   ],
   package_data = {'phonlab': ['data/phonemap.txt']},
