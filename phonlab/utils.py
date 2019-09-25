@@ -312,7 +312,7 @@ fnamedf : DataFrame
 
 def roll_and_pad(a, shift, val):
     '''
-    Roll an array 'a' by amount 'shift' in a way similar to np.roll(), but
+Roll an array 'a' by amount 'shift' in a way similar to np.roll(), but
 instead of wrapping values around the edges, replace missing edge elements
 with constant 'val'.
 
@@ -337,6 +337,16 @@ Returns
 
 rolled : array
     The rolled and padded values, as a numpy array.
+
+Examples
+--------
+
+>>> roll_and_pad(['a', 'b', 'c'], 1, 'sp')
+array(['sp', 'a', 'b'], dtype=object)
+
+>>> roll_and_pad(['a', 'b', 'c'], -2, '')
+array(['c', '', ''], dtype=object)
+
 '''
     if shift >= 0:
         index = np.arange(len(a))
