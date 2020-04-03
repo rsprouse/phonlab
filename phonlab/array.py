@@ -66,3 +66,58 @@ into `a` that represent a run of consecutive `True` values.
                     if (fidx - tidx) >= minlen
         ))
     return runs
+
+def roll_and_pad(a, shift, val):
+    '''
+Roll an array 'a' by amount 'shift' in a way similar to np.roll(), but
+instead of wrapping values around the edges, replace missing edge elements
+with constant 'val'.
+
+The intended use case for this function is for rolling a Pandas Series filled
+with strings. It will likely work for sequences of other types but might not
+work with n-dimensional arrays.
+
+Parameters
+----------
+
+a : array_like
+    Input array.
+
+shift: int
+    The number of places by which elements are shifted.
+
+val : scalar
+    The value to set the padded values.
+
+Returns
+-------
+
+rolled : array
+    The rolled and padded values, as a numpy array.
+
+Examples
+--------
+
+>>> roll_and_pad(['a', 'b', 'c'], 1, 'sp')
+array(['sp', 'a', 'b'], dtype=object)
+
+>>> roll_and_pad(['a', 'b', 'c'], -2, '')
+array(['c', '', ''], dtype=object)
+
+'''
+    if shift >= 0:
+        index = np.arange(len(a))
+    else:
+        index = np.arange(len(a) * -1, 0, 1)
+# Note the cast to pd.Series for better string handling. Observe the treatment
+# of the string as list-like rather than as a unitary value if a is np array:
+
+# In[1]: np.pad(np.array(['a', 'b', 'c']), 2, 'constant', constant_values='XY')
+# Out[1]: array(['X', 'X', 'a', 'b', 'c', 'X', 'X'], dtype='<U1')
+#
+# In [2]: np.pad(pd.Series(['a', 'b', 'c']), 2, 'constant', constant_values='XY')
+# Out[2]: array(['XY', 'XY', 'a', 'b', 'c', 'XY', 'XY'], dtype=object)
+
+    if isinstance(val, str):
+        a = pd.Series(a)
+    return np.pad(a, np.abs(shift), 'constant', constant_values=val)[index]
