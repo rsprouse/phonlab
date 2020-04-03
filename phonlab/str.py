@@ -39,4 +39,3 @@ d : dataframe or dict
             )
     return d
 
-
