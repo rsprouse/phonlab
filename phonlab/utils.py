@@ -6,6 +6,35 @@ import numpy as np
 import re
 import fnmatch
 import shutil
+from datetime import datetime
+import dateutil
+
+
+def get_timestamp_now(timespec='seconds'):
+    '''
+    Create a timestamp for an acquisition, using current local time.
+
+    Returns
+    -------
+
+    timestamp, offset: tuple(str, str)
+    A tuple of strings representing the datetime in YYYY-MM-DDTHHMMSS
+    format and the timezone offset from UTC, e.g. '-0700'.
+    '''
+
+    # Regex that matches a timezone offset at the end of an acquisition
+    # directory name.
+    utcoffsetre = re.compile(
+        r'(?P<offset>(?P<sign>[-+])(?P<hours>0\d|1[12])(?P<minutes>[012345]\d))'
+    )
+    ts = datetime.now(dateutil.tz.tzlocal()) \
+             .replace(microsecond=0) \
+             .isoformat() \
+             .replace(":","")
+    m = utcoffsetre.search(ts)
+    utcoffset = m.group('offset')
+    ts = utcoffsetre.sub('', ts)
+    return (ts, utcoffset)
 
 def cp_backup(fname, bkdir=None, hidden=True):
     '''Make a backup copy of the file `fname` and return the name of the copied
