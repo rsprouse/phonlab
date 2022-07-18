@@ -6,7 +6,7 @@ UC Berkeley PhonLab utilities
 To install, do:
 
 ```bash
-git clone https://github.com/rsprouse/phonlab
+git clone https://github.com/rsprouse/phonlab # Or download and unzip package from github
 cd phonlab
 python setup.py install
 ```
