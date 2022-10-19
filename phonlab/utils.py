@@ -301,3 +301,100 @@ fnamedf : DataFrame
             df.loc[:, 'mtime'] = pd.to_datetime(df.loc[:, 'mtime'], unit='s')
     return df
 
+def match_tokentimes(tokentimes, targettimes, mininc=1, return_warnidx=False):
+    '''
+Find the closest matches in `targettimes` for every time in `tokentimes` and
+return their indexes into `targettimes`.
+
+Parameters
+----------
+
+tokentimes : 1d of shape (n times), or 2d array of shape (m tokens, n times)
+    The times to match against `targettimes`. These could be, for example, the
+    times of events in an audio file for which you would like to find acoustic
+    measurements. If the array is 2d, then tokens are assumed to lie along
+    axis 0 (the first axis). For 2d arrays a warning is emitted if each
+    consecutive returned index within a token does not increase from the one
+    before it by at least `mininc`, i.e. if the token duration is too short.
+
+targettimes : 1d array
+    The times to search for the closest match. These could be, for example,
+    the times corresponding to an arrray of pitch measurements or spectral
+    slices in a spectrogram.
+
+mininc : integer (optional; 1)
+    The minimum increment between consecutive indexes within a token.
+    If `tokentimes` is 1d, then this parameter is ignored. Use `None` to
+    turn off this check.
+
+    See `return_warnidx` for returning an index that identifies the tokens
+    that emitted a warning.
+
+return_warnidx : Bool (optional; False)
+    If True, return a boolean index that can be used to select the tokens
+    in `tokentimes` that cause a warning to be emitted.
+
+Returns
+-------
+
+tidx : ndarray of integers in the shape of `tokentimes.shape`
+    The integer indexes of the values in `targettimes` that are closest to each
+    value of `tokentimes`, arranged in the same shape as `tokentimes`.
+
+(tidx, warnidx) : (ndarray of integers, 1d boolean array)
+    A tuple is returned when `return_warnidx=True`. In addition to `tidx`,
+    `warnidx` is also returned, which contains a boolean index that has a
+    True value for every token that causes a warning to be emitted.
+    '''
+    flattokentimes = np.ravel(tokentimes)
+    tidx = \
+        np.argmin(
+            np.abs(
+                targettimes - \
+                np.broadcast_to(
+                    flattokentimes,
+                    (len(targettimes), len(flattokentimes))
+                ).transpose()
+            ),
+            axis=1
+        ).reshape(tokentimes.shape)
+    if len(tokentimes.shape) == 2:
+        collapse = 1 if tokenaxis == 0 else 0
+        warnidx = \
+            np.any(
+                np.diff(tidx, axis=collapse) < mininc,
+                axis=collapse
+            )
+        if np.any(warnidx):
+            num = tokentimes.shape[collapse]
+            sys.stderr.write(f'''
+Short duration tokens were detected. {np.count_nonzero(warnidx)} token(s) were found
+that are too short to be divided into {num} indexes from `targettimes` (the second parameter).
+
+This warning may occur if `tokentimes` is not the right shape and tokens lie along the
+second axis, in which case you must tranpose `tokentimes` so that tokens are on the first
+axis.
+
+This warning may also occur if the times in `tokentimes` don't really represent tokens, in
+which case disable this warning.
+
+To disable this check and warning, use `mininc=None`.
+
+Debugging hint
+--------------
+
+To see the tokens that emitted a warning, use `return_warnidx=True` to return an additional
+boolean array that contains a True value for any token that emitted a warning, e.g.
+
+# tokentimes is 2d; tokens on axis 0 (default)
+>> (tidx, noninc) = match_times(tokentimes, targettimes, return_warnidx=True)
+>> tokentimes[noninc]    # Tokens that emit a warning
+
+# tokentimes is 2d; tokens on axis 1
+>> (tidx, noninc) = match_times(tokentimes, targettimes, tokenaxis=1, return_warnidx=True)
+>> tokentimes[:,noninc]    # Tokens that emit a warning
+            ''')
+    if return_warnidx is True:
+        return (tidx, warnidx)
+    else:
+        return tidx
