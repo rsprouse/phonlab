@@ -108,3 +108,6 @@ venv.bak/
 # Files generated as notebook output
 resource/mirrorexp/cache
 
+# Vim
+*~
+*.swp
