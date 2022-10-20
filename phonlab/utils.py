@@ -359,11 +359,10 @@ tidx : ndarray of integers in the shape of `tokentimes.shape`
             axis=1
         ).reshape(tokentimes.shape)
     if len(tokentimes.shape) == 2:
-        collapse = 1 if tokenaxis == 0 else 0
         warnidx = \
             np.any(
-                np.diff(tidx, axis=collapse) < mininc,
-                axis=collapse
+                np.diff(tidx, axis=1) < mininc,
+                axis=1
             )
         if np.any(warnidx):
             num = tokentimes.shape[collapse]

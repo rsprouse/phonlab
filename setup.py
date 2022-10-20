@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
   name = 'phonlab',
-  version = '0.9.0',
+  version = '0.9.1',
   packages = ['phonlab', 'phonlab.third_party'],
   scripts = [
   ],
