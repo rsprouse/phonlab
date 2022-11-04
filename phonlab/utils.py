@@ -346,7 +346,8 @@ tidx : ndarray of integers in the shape of `tokentimes.shape`
     `warnidx` is also returned, which contains a boolean index that has a
     True value for every token that causes a warning to be emitted.
     '''
-    flattokentimes = np.ravel(np.array(tokentimes))
+    tokentimes = np.array(tokentimes) # Cast in case list or scalar.
+    flattokentimes = np.ravel(tokentimes)
     tidx = \
         np.argmin(
             np.abs(
