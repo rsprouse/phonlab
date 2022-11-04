@@ -295,8 +295,7 @@ fnamedf : DataFrame
         if 'ext' in addcols:
             df.ext = df.ext.astype('category')
         # Cast named captured columns to Categorical.
-        for col in mdcols:
-            df.loc[:, col] = df.loc[:, col].astype('category')
+        df = df.astype({c: 'category' for c in mdcols})
         if to_datetime is True and 'mtime' in df.columns:
             df.loc[:, 'mtime'] = pd.to_datetime(df.loc[:, 'mtime'], unit='s')
     return df
