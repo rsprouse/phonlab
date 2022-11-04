@@ -308,7 +308,8 @@ return their indexes into `targettimes`.
 Parameters
 ----------
 
-tokentimes : 1d of shape (n times), or 2d array of shape (m tokens, n times)
+tokentimes : 1d array of shape (n times) (or list, scalar), or 2d array of shape
+    (m tokens, n times)
     The times to match against `targettimes`. These could be, for example, the
     times of events in an audio file for which you would like to find acoustic
     measurements. If the array is 2d, then tokens are assumed to lie along
@@ -345,7 +346,7 @@ tidx : ndarray of integers in the shape of `tokentimes.shape`
     `warnidx` is also returned, which contains a boolean index that has a
     True value for every token that causes a warning to be emitted.
     '''
-    flattokentimes = np.ravel(tokentimes)
+    flattokentimes = np.ravel(np.array(tokentimes))
     tidx = \
         np.argmin(
             np.abs(
