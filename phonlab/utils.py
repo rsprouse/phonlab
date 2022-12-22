@@ -398,3 +398,71 @@ boolean array that contains a True value for any token that emitted a warning, e
         return (tidx, warnidx)
     else:
         return tidx
+
+def adjust_boundaries(parent, child, tolerance):
+    '''
+Compare two Series and return the closest match of the second found in the first.
+
+Two annotation tiers may be expected to have a strictly hierarchical relationship
+where the boundaries should exactly align, e.g. the left boundary of a word tier aligns
+with the left boundary of a phone (and right boundaries should also align). If the
+annotations were not created carefully and do not match exactly, this function can
+be used to adjust values of one (the `parent`) to match a value found in the
+other (the `child`). For example, the `parent` value could be the left boundaries
+of a series of words, and the `child` value could be the left boundaries of a series
+of phones.
+
+Normally the `parent` series has a one-to-many relationship with the `child` series,
+and the `child` series has a many-to-one relationship with the `parent`. In the
+preceding discussion, words contain multiple phones.
+
+Parameters
+----------
+
+parent: Series of num
+A series of time values that correspond to parent boundaries.
+
+child: Series of num
+A series of time values that correspond to child boundaries.
+
+tolerance: num
+Maximum distance from parent to child value for inexact matches.
+
+Returns
+-------
+mod_parent: array
+A modified numpy array of time values of `parent` in which each value is an exact
+match of a value in `child`.
+
+Errors
+------
+
+A ValueError is raised if one or more boundaries are not within tolerance. A
+list of the values from `parent` that are out of tolerance is included as the
+second value of the Exception object's `args` attribute. An error message is
+the first value of `args`.
+
+Example
+-------
+
+::
+
+    # Read phone and word tiers from a textgrid.
+    [phdf, wddf] = audiolabel.read_label(tgpath, from_type='praat')
+    # Adjust word 't1' values up to 5 ms. 
+    try:
+        wddf['t1'] = adjust_boundaries(wddf['t1'], phdf['t1'], tolerance=0.005)
+    except ValueError as e:
+        badt = ', '.join([f'{t:0.4f}' for t in e.args[1]])
+        msg = f"Word-phone boundary mismatch greater than {tolerance} in {tgpath}. " \
+              f"Bad word boundary found at time(s) {badt}."
+        raise ValueError(msg) from None
+    '''
+    idx = pd.Index(child).get_indexer(parent, method='nearest', tolerance=tolerance)
+    try:
+        return child[idx].values
+    except KeyError:
+        raise ValueError(
+            'Boundaries out of tolerance in `parent`.',
+            [parent[i] for i in np.where(idx == -1)[0]]
+        )
