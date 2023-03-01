@@ -1,6 +1,11 @@
 import os, sys, re
 import pandas as pd
-import pkg_resources
+try:
+    from importlib.resources import files as res_files
+    from importlib.resources import as_file
+except ImportError:
+    from importlib_resources import files as res_files
+    from importlib_resources import as_file
 
 def phonemap(k, v, type='df'):
     '''Return a mapping between phones in different transcription systems as
@@ -25,10 +30,13 @@ Returns
 d : dataframe or dict
     The dataframe that contains the phone mappings.
 '''
-    d = pd.read_csv(
-        pkg_resources.resource_stream('phonlab', 'data/phonemap.txt'),
-        sep='\t'
-    )
+    # Use importlib_resources tools to create context manager
+    # for access to phonlab package data files.
+    with as_file(res_files('phonlab')) as p_res:
+        d = pd.read_csv(
+            p_res / 'data' / 'phonemap.txt',
+            sep='\t'
+        )
     d = d.loc[:, (k, v)].dropna().reset_index(drop=True)
     d = d[~d.duplicated()]
     for col1, col2 in ((k, v), (v, k)):
