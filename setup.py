@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
   name = 'phonlab',
-  version = '0.10.0',
+  version = '0.11.0',
   packages = ['phonlab', 'phonlab.third_party'],
   install_requires=[
     'importlib_resources; python_version < "3.9"',
@@ -12,10 +12,11 @@ setup(
     'pandas',
     'praat-parselmouth',
     'scipy',
+    'soundfile',
   ],
   scripts = [
   ],
-  include_package_data=True,
+  package_data = {'phonlab': ['*.txt', 'data/noise/*.wav']},
   classifiers = [
     'Intended Audience :: Science/Research',
     'Topic :: Scientific/Engineering',
