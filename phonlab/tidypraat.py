@@ -36,18 +36,18 @@ def formant2df(fobj, num, unit='HERTZ', include_bw=False):
     Examples
     --------
 
-    snd = parselmouth.Sound(mywav)
-    fmnt = snd.to_formant_burg()
+    >>> snd = parselmouth.Sound(mywav)
+    >>> fmnt = snd.to_formant_burg()
 
     # Get dataframe of first two formants in Hz and corresponding bandwidths.
-    f12df = formant2df(fmnt, 2, include_bw=True)
+    >>> f12df = formant2df(fmnt, 2, include_bw=True)
 
     # Get dataframe of only second formant in bark and no bandwidths.
-    f1df = formant2df(fmnt, [2], unit='bark')
+    >>> f1df = formant2df(fmnt, [2], unit='bark')
 
     # Save results to file the same way you would any other dataframe.
-    f1df.to_csv('formants.csv', sep='\t', header=True, index=False)
-    f1df.to_pickle('formants.zip')
+    >>> f1df.to_csv('formants.csv', sep='\t', header=True, index=False)
+    >>> f1df.to_pickle('formants.zip')
     '''
     fNs = np.arange(1, num+1) if isinstance(num, int) else num
     data = {
@@ -67,7 +67,7 @@ def formant2df(fobj, num, unit='HERTZ', include_bw=False):
 
 def pitch2df(pobj, unit='HERTZ'):
     '''
-    Return formant values from a Praat Pitch object as a dataframe.
+    Return pitch values from a Praat Pitch object as a dataframe.
 
     Parameters
     ----------
@@ -91,18 +91,18 @@ def pitch2df(pobj, unit='HERTZ'):
     Examples
     --------
 
-    snd = parselmouth.Sound(mywav)
-    ptch = snd.to_pitch()
+    >>> snd = parselmouth.Sound(mywav)
+    >>> ptch = snd.to_pitch()
 
     # Get dataframe of pitch in Hz.
-    hzdf = pitch2df(pitch)
+    >>> hzdf = pitch2df(pitch)
     
     # Get dataframe of pitch in mel.
-    meldf = pitch2df(pitch, unit='mel')
+    >>> meldf = pitch2df(pitch, unit='mel')
 
     # Save results to file the same way you would any other dataframe.
-    hzdf.to_csv('hzpitch.csv', sep='\t', header=True, index=False)
-    hzdf.to_pickle('melpitch.zip')
+    >>> hzdf.to_csv('hzpitch.csv', sep='\t', header=True, index=False)
+    >>> hzdf.to_pickle('melpitch.zip')
     '''
     frameidx = np.arange(1, pobj.nx+1)
     data = {
@@ -113,4 +113,3 @@ def pitch2df(pobj, unit='HERTZ'):
             )
     }
     return pd.DataFrame(data)
-
