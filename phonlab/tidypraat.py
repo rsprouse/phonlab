@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
 
-def formant2df(fobj, num, unit='HERTZ', include_bw=False):
+def formant2df(obj, num, ts=None, unit='HERTZ', include_bw=False, tcol='sec'):
     '''
     Return formant values from a Praat Formant object as a dataframe.
 
     Parameters
     ----------
 
-    fobj: Formant obj
+    obj: Formant obj
     The input Formant object.
 
     num: int or list of int
@@ -16,22 +16,34 @@ def formant2df(fobj, num, unit='HERTZ', include_bw=False):
     the values of the first `num` formants are returned. If `num` is a list
     of `int`s then the exactly the formants in the list are returned.
 
+    ts: Iterable of floats or None (default)
+    If None (default), then the Formant object's `ts` times are used to
+    query for formant measurements. These are the centers of the analysis
+    frames. The Formant object's values can also be queried at specific
+    times by providing an Iterable of floats, such as a numpy array or
+    Python list.
+
     unit: str 'HERTZ' (default) or 'BARK'
     The unit in which formant values are returned. Lower case versions of
     the units are allowed. See Praat's `Formant_enums.h` file for defined
     values.
 
-    include_bw: boolean, default False
+    include_bw: boolean (default False)
     If True, bandwidth values for each formant returned are also included.
+
+    tcol: str (default 'sec') or None
+    The label of the time column in the output dataframe, 'sec' by default.
+    If None, no time column is added to the dataframe.
 
     Returns
     -------
 
     DataFrame
     The output dataframe contains columns of times and formant measurements.
-    The time column is labelled `sec` and formant columns are labelled `fN`,
-    where `N` is an integer. If `include_bw` is True then bandwidths columns
-    labelled `bwN` corresponding to `fN` columns are also returned.
+    The formant columns are labelled `fN`, where `N` is an integer. The time
+    column is labelled by the value of `tcol` (default 'sec'), or omitted if
+    `tcol` is None. If `include_bw` is True then bandwidths columns labelled
+    `bwN` corresponding to `fN` columns are also returned.
 
     Examples
     --------
@@ -50,30 +62,41 @@ def formant2df(fobj, num, unit='HERTZ', include_bw=False):
     >>> f1df.to_pickle('formants.zip')
     '''
     fNs = np.arange(1, num+1) if isinstance(num, int) else num
+    ts = obj.ts() if ts is None else ts
     data = {
         f'f{fn}': \
             np.array(
-                [fobj.get_value_at_time(fn, t, unit.upper()) for t in fobj.ts()]
+                [obj.get_value_at_time(fn, t, unit.upper()) for t in ts]
             ) for fn in fNs
     }
     if include_bw is True:
         data.update({
             f'bw{fn}': \
                 np.array(
-                    [fobj.get_bandwidth_at_time(fn, t) for t in fobj.ts()]
+                    [obj.get_bandwidth_at_time(fn, t) for t in ts]
                 ) for fn in fNs
         })
-    return pd.DataFrame({**{'sec': fobj.ts()}, **data})
+    if tcol is None:
+        return pd.DataFrame(data)
+    else:
+        return pd.DataFrame({**{tcol: ts}, **data})
 
-def pitch2df(pobj, unit='HERTZ'):
+def pitch2df(obj, ts=None, unit='HERTZ', interpolation='LINEAR', tcol='sec'):
     '''
     Return pitch values from a Praat Pitch object as a dataframe.
 
     Parameters
     ----------
 
-    pobj: Pitch obj
+    obj: Pitch obj
     The input Pitch object.
+
+    ts: Iterable of floats or None (default)
+    If None (default), then the Pitch object's `ts` times are used to
+    query for pitch measurements. These are the centers of the analysis
+    frames. The Pitch object's values can also be queried at specific
+    times by providing an Iterable of floats, such as a numpy array or
+    Python list.
 
     unit: str 'HERTZ' (default), 'HERTZ_LOGARITHMIC', 'MEL', 'LOG_HERTZ',
     'SEMITONES_1', 'SEMITONES_100', 'SEMITONES_200', 'SEMITONES_440', 'ERB'
@@ -81,12 +104,22 @@ def pitch2df(pobj, unit='HERTZ'):
     the units are allowed. See Praat's `Pitch_enums.h` file for defined
     values.
 
+    interpolation: str 'LINEAR' (default), 'NEAREST'
+    The type of interpolation to use when returning values. Lower case
+    versions of the units are allowed. See Praat's `Pitch.cpp` and
+    `Vector_enums.h` files for defined values.
+
+    tcol: str (default 'sec') or None
+    The label of the time column in the output dataframe, 'sec' by default.
+    If None, no time column is added to the dataframe.
+
     Returns
     -------
 
     DataFrame
-    The output dataframe contains columns of times and pitch measurements.
-    The time column is labelled `sec` and the pitch column is labelled `f0`.
+    The output dataframe contains a column of pitch measurements labelled
+    `f0`. The time column is labelled by the value of `tcol` (default 'sec'),
+    or omitted if `tcol` is None.
 
     Examples
     --------
@@ -104,52 +137,78 @@ def pitch2df(pobj, unit='HERTZ'):
     >>> hzdf.to_csv('hzpitch.csv', sep='\t', header=True, index=False)
     >>> hzdf.to_pickle('melpitch.zip')
     '''
-    frameidx = np.arange(1, pobj.nx+1)
+    ts = obj.ts() if ts is None else ts
     data = {
-        'sec': pobj.ts(),
         'f0': \
             np.array(
-                [pobj.get_value_in_frame(n, unit.upper()) for n in frameidx]
+                [
+                    obj.get_value_at_time(
+                        t, unit.upper(), interpolation.upper()
+                    ) for t in ts
+                ]
             )
     }
-    return pd.DataFrame(data)
+    if tcol is None:
+        return pd.DataFrame(data)
+    else:
+        return pd.DataFrame({**{tcol: ts}, **data})
 
-def intensity2df(iobj):
+def intensity2df(obj, ts=None, interpolation='CUBIC', tcol='sec'):
     '''
     Return intensity values from a Praat Intensity object as a dataframe.
 
     Parameters
     ----------
 
-    iobj: Intensity obj
+    obj: Intensity obj
     The input Intensity object.
+
+    ts: Iterable of floats or None (default)
+    If None (default), then the Intensity object's `ts` times are used to
+    query for formant measurements. These are the centers of the analysis
+    frames. The Intensity object's values can also be queried at specific
+    times by providing an Iterable of floats, such as a numpy array or
+    Python list.
+
+    interpolation: str 'CUBIC' (default), 'NEAREST', 'LINEAR', 'SINC70',
+    'SINC700'
+    The type of interpolation to use when returning values. Lower case
+    versions of the units are allowed. See Praat's `Intensity.cpp` and
+    `Vector_enums.h` files for defined values.
+
+    tcol: str (default 'sec') or None
+    The label of the time column in the output dataframe, 'sec' by default.
+    If None, no time column is added to the dataframe.
 
     Returns
     -------
 
     DataFrame
-    The output dataframe contains columns of times and intensity measurements.
-    The time column is labelled `sec` and the intensity column is labelled `spl`.
+    The output dataframe contains a column of intensity measurements labelled
+    `spl`. The time column is labelled by the value of `tcol` (default 'sec'),
+    or omitted if `tcol` is None.
 
     Examples
     --------
 
     >>> snd = parselmouth.Sound(mywav)
-    >>> intensity = snd.to_intensity()
+    >>> intens = snd.to_intensity()
 
-    # Get dataframe of intensity in dB SPL.
-    >>> idf = intensity2df(intensity)
+    # Get dataframe of SPL.
+    >>> spldf = intensity2df(intens)
 
     # Save results to file the same way you would any other dataframe.
-    >>> idf.to_csv('intensity.csv', sep='\t', header=True, index=False)
-    >>> idf.to_pickle('intensity.zip')
+    >>> spldf.to_csv('intensity.csv', sep='\t', header=True, index=False)
+    >>> splddf.to_pickle('intensity.zip')
     '''
-    frameidx = np.arange(1, iobj.nx+1)
+    ts = obj.ts() if ts is None else ts
     data = {
-        'sec': iobj.ts(),
         'spl': \
             np.array(
-                [iobj.get_value_in_cell(1,n) for n in frameidx]
+                [obj.get_value(t, interpolation.upper()) for t in ts]
             )
     }
-    return pd.DataFrame(data)
+    if tcol is None:
+        return pd.DataFrame(data)
+    else:
+        return pd.DataFrame({**{tcol: ts}, **data})
