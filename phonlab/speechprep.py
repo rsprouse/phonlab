@@ -177,9 +177,10 @@ def add_noise_and_norm(infile, outfile, noise, noisedb, normdb, soxcmd='sox'):
             if noise in pkg_noise:
                 chan = {1: 'mono', 2: 'stereo'}[compinfo.channels]
                 noisesrc = f'{noise}-{chan}.wav'
-                with as_file(res_files('phonlab')) as p_res:
+                respath = res_files('phonlab') / 'data' / 'noise' / noisesrc
+                with as_file(respath) as noisepath:
                     _prep_noise_file(
-                        p_res / 'data' / 'noise' / noisesrc,
+                        noisepath,
                         normnoise.name,
                         compinfo,
                         noisedb,
