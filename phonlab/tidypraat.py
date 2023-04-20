@@ -113,3 +113,43 @@ def pitch2df(pobj, unit='HERTZ'):
             )
     }
     return pd.DataFrame(data)
+
+def intensity2df(iobj):
+    '''
+    Return intensity values from a Praat Intensity object as a dataframe.
+
+    Parameters
+    ----------
+
+    iobj: Intensity obj
+    The input Intensity object.
+
+    Returns
+    -------
+
+    DataFrame
+    The output dataframe contains columns of times and intensity measurements.
+    The time column is labelled `sec` and the intensity column is labelled `spl`.
+
+    Examples
+    --------
+
+    >>> snd = parselmouth.Sound(mywav)
+    >>> intensity = snd.to_intensity()
+
+    # Get dataframe of intensity in dB SPL.
+    >>> idf = intensity2df(intensity)
+
+    # Save results to file the same way you would any other dataframe.
+    >>> idf.to_csv('intensity.csv', sep='\t', header=True, index=False)
+    >>> idf.to_pickle('intensity.zip')
+    '''
+    frameidx = np.arange(1, iobj.nx+1)
+    data = {
+        'sec': iobj.ts(),
+        'spl': \
+            np.array(
+                [iobj.get_value_in_cell(1,n) for n in frameidx]
+            )
+    }
+    return pd.DataFrame(data)
