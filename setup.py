@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
   name = 'phonlab',
-  version = '0.13.2',
+  version = '0.14.0',
   packages = ['phonlab', 'phonlab.third_party'],
   install_requires=[
     'importlib_resources; python_version < "3.9"',
