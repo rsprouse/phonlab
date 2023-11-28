@@ -96,7 +96,7 @@ def formant2df(obj, num, ts=None, unit='HERTZ', include_bw=False, tcol='sec'):
         if tcol is None:
             return pd.DataFrame(data)
         else:
-            return pd.DataFrame({**{tcol: ts}, **data})
+            return pd.DataFrame({**{tcol: tpts}, **data})
 
 def pitch2df(obj, ts=None, unit='HERTZ', interpolation='LINEAR', tcol='sec'):
     '''
