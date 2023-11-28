@@ -1,6 +1,40 @@
 import numpy as np
 import pandas as pd
 
+def _check_and_get_tparams(obj, ts, tcol):
+    '''
+    Internal function to check time-related params and return time series
+    for data points.
+
+    Parameters
+    ----------
+
+    obj: `obj` param of a `*2df` function
+
+    ts: `ts` param of a `*2df` function
+
+    tcol: `tcol` param of a `*2df` function
+
+    Returns
+    -------
+
+    1-d array
+    Time series array.
+    '''
+    if ts is None:
+        tpts = obj.ts()  # Get times directly from object
+    elif isinstance(ts, pd.DataFrame):
+        try:
+            tpts = ts[tcol]
+        except KeyError:
+            raise ValueError(
+                f"Input dataframe does not have a time column named '{tcol}'."
+                "\nUse the `tcol` parameter to specify the time column."
+            ) from None
+    else:
+        tpts = ts        # Iterable of float
+    return tpts
+
 def formant2df(obj, num, ts=None, unit='HERTZ', include_bw=False, tcol='sec'):
     '''
     Return formant values from a Praat Formant object as a dataframe.
@@ -252,3 +286,76 @@ def intensity2df(obj, ts=None, interpolation='CUBIC', tcol='sec'):
             return pd.DataFrame({'spl': data})
         else:
             return pd.DataFrame({tcol: tpts, 'spl': data})
+
+def mfcc2df(obj, num, ts=None, tcol='sec', include_energy=True):
+    '''
+    Return mfcc values from a Praat MFCC object as a dataframe.
+
+    Parameters
+    ----------
+
+    obj: Formant obj
+    The input Formant object.
+
+    num: int
+    The number of MFCC coefficients which will be calculated and returned
+    in the columns labelled `c1` ... `cN`, where N is `num`. See the
+    `include_energy` param for `c0`.
+
+    ts: DataFrame, Iterable of floats, or None (default)
+    If None (default), then the Formant object's `ts` times are used to
+    query for formant measurements. These are the centers of the analysis
+    frames. The Formant object's values can also be queried at specific
+    times by providing an Iterable of floats, such as a numpy array or
+    Python list.
+
+    tcol: str (default 'sec') or None
+    The label of the time column in the output dataframe, 'sec' by default.
+    If None, no time column is added to the dataframe.
+
+    include_energy: bool (default True)
+    If True, include the zeroth cepstral coefficient in the column labelled
+    `c0`. For an MFCC object this value relates to energy.
+
+    Returns
+    -------
+
+    DataFrame
+    The output dataframe contains columns of times and MFCC coefficients.
+    The coefficient columns are labelled `c1` ... `cN`, where `N` is an integer.
+    If `include_energy` is True, then the zeroth cepstral coefficient is also
+    included in the `c0` column.
+    The time column is labelled by the value of `tcol` (default 'sec'), or omitted if
+    `tcol` is None. If `ts` is a dataframe, the output is a concatenation of
+    the input dataframe and the MFCC values.
+
+    Examples
+    --------
+
+    >>> ncoeff = 12
+    >>> snd = parselmouth.Sound(mywav)
+    >>> mfcc = snd.to_mfcc(number_of_coefficients=ncoeff)
+
+    # Get dataframe of coefficients and times.
+    >>> mdf = mfcc2df(mfcc, num=ncoeff)
+
+    # Save results to file the same way you would any other dataframe.
+    >>> mdf.to_csv('mfcc.csv', sep='\t', header=True, index=False)
+    >>> mdf.to_pickle('mfcc.zip')
+    '''
+    tpts = _check_and_get_tparams(obj, ts, tcol)
+    if include_energy is True:
+        rng = range(num+1)
+    else:
+        rng = range(1, num+1)
+    cols = [f'c{n}' for n in rng]
+    data = obj.to_array()[rng].T
+    df = pd.DataFrame(data, columns=cols)
+    if isinstance(ts, pd.DataFrame):
+        return pd.concat([ts, df.set_axis(ts.index)], axis='columns')
+    else:
+        if tcol is None:
+            return df
+        else:
+            df.insert(0, tcol, tpts)
+            return df
