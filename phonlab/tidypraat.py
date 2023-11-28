@@ -98,18 +98,7 @@ def formant2df(obj, num, ts=None, unit='HERTZ', include_bw=False, tcol='sec'):
     >>> f1df.to_pickle('formants.zip')
     '''
     fNs = np.arange(1, num+1) if isinstance(num, int) else num
-    if ts is None:
-        tpts = obj.ts()  # Get times from Formant object frames
-    elif isinstance(ts, pd.DataFrame):
-        try:
-            tpts = ts[tcol]
-        except KeyError:
-            raise ValueError(
-                f"Input dataframe does not have a time column named '{tcol}'."
-                "\nUse the `tcol` parameter to specify the time column."
-            ) from None
-    else:
-        tpts = ts        # Iterable of float
+    tpts = _check_and_get_tparams(obj, ts, tcol)
     data = {
         f'f{fn}': \
             np.array(
@@ -177,7 +166,7 @@ def pitch2df(obj, ts=None, unit='HERTZ', interpolation='LINEAR', tcol='sec'):
     --------
 
     >>> snd = parselmouth.Sound(mywav)
-    >>> ptch = snd.to_pitch()
+    >>> pitch = snd.to_pitch()
 
     # Get dataframe of pitch in Hz.
     >>> hzdf = pitch2df(pitch)
@@ -189,18 +178,7 @@ def pitch2df(obj, ts=None, unit='HERTZ', interpolation='LINEAR', tcol='sec'):
     >>> hzdf.to_csv('hzpitch.csv', sep='\t', header=True, index=False)
     >>> hzdf.to_pickle('melpitch.zip')
     '''
-    if ts is None:
-        tpts = obj.ts()  # Get times from Pitch object frames
-    elif isinstance(ts, pd.DataFrame):
-        try:
-            tpts = ts[tcol]
-        except KeyError:
-            raise ValueError(
-                f"Input dataframe does not have a time column named '{tcol}'."
-                "\nUse the `tcol` parameter to specify the time column."
-            ) from None
-    else:
-        tpts = ts        # Iterable of float
+    tpts = _check_and_get_tparams(obj, ts, tcol)
     data = [
         obj.get_value_at_time(t, unit.upper(), interpolation.upper()) \
             for t in tpts
@@ -265,18 +243,7 @@ def intensity2df(obj, ts=None, interpolation='CUBIC', tcol='sec'):
     >>> spldf.to_csv('intensity.csv', sep='\t', header=True, index=False)
     >>> splddf.to_pickle('intensity.zip')
     '''
-    if ts is None:
-        tpts = obj.ts()  # Get times from Intensity object frames
-    elif isinstance(ts, pd.DataFrame):
-        try:
-            tpts = ts[tcol]
-        except KeyError:
-            raise ValueError(
-                f"Input dataframe does not have a time column named '{tcol}'."
-                "\nUse the `tcol` parameter to specify the time column."
-            ) from None
-    else:
-        tpts = ts        # Iterable of float
+    tpts = _check_and_get_tparams(obj, ts, tcol)
     data = [obj.get_value(t, interpolation.upper()) for t in tpts]
     if isinstance(ts, pd.DataFrame):
         ts['spl'] = data
@@ -336,8 +303,8 @@ def mfcc2df(obj, num, ts=None, tcol='sec', include_energy=True):
     >>> snd = parselmouth.Sound(mywav)
     >>> mfcc = snd.to_mfcc(number_of_coefficients=ncoeff)
 
-    # Get dataframe of coefficients and times.
-    >>> mdf = mfcc2df(mfcc, num=ncoeff)
+    # Get dataframe of 12 coefficients (plus energy `c0`) and times.
+    >>> mdf = mfcc2df(mfcc, num=ncoeff, include_energy=True)
 
     # Save results to file the same way you would any other dataframe.
     >>> mdf.to_csv('mfcc.csv', sep='\t', header=True, index=False)
