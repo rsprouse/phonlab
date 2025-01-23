@@ -1,3 +1,5 @@
+__all__=['smoothn']
+
 from numpy import *
 from pylab import *
 import scipy.optimize.lbfgsb as lbfgsb
