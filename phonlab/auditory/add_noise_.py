@@ -89,7 +89,7 @@ This example adds white noise at a signal-to-noise ratio (SNR) of 3 dB
 >>> phon.sgram(x,fs_in=fs)
 
 .. figure:: images/add_noise.png
-   :scale: 50 %
+   :scale: 90 %
    :alt: a spectrogram a speech sample buried in white noise
    :align: center
 

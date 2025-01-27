@@ -41,7 +41,7 @@ def get_f0(signal, f0_range = [63,400], chan = 0, pre = 1.0, fs_in=12000):
     =======
     There is one lie in this example.  F0 measurements in nonsonorants were removed prior to actually making this plot.  See the examples folder for how that is done.
     
-    >>> f0df = phon.get_f0(x,fs_in=fs,pre=0.94, f0_range=[120,250])
+    >>> f0df = get_f0(x,fs_in=fs, f0_range= [63,400])
     >>>
     >>> ret = phon.sgram(x,fs_in = fs,cmap='Blues') # draw the spectrogram from the array of samples
     >>> ax1 = ret[0]  # the first item returned, is the matplotlib axes of the spectrogram
@@ -49,7 +49,7 @@ def get_f0(signal, f0_range = [63,400], chan = 0, pre = 1.0, fs_in=12000):
     >>> ax2.plot(f0df.sec,f0df.f0, 'go')  
 
     .. figure:: images/get_f0.png
-       :scale: 50 %
+       :scale: 90 %
        :alt: a 'bluescale' spectrogram with red dots marking the f0
        :align: center
 

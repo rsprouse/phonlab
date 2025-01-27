@@ -48,7 +48,7 @@ def amplitude_envelope(signal, bounds = [], fs_in=22050, fs=22050, chan = 0, cut
     >>> ax2.axhline(0) 
 
     .. figure:: images/amp_env.png
-       :scale: 50 %
+       :scale: 90 %
        :alt: a spectrogram with a red line marking the balance of energy in low and high frequency bands
        :align: center
 

@@ -94,7 +94,7 @@ def fricative(x,t,fs):
     >>> plt.axvline(COG,color="green")
 
     .. figure:: images/fricative.png
-       :scale: 40 %
+       :scale: 60 %
        :alt: a fricative spectrum with vertical lines marking the main peak (red) and COG (green)
        :align: center
 

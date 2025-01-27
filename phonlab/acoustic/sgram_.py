@@ -68,7 +68,7 @@ def sgram(signal,chan=0,start=0,end=-1,fs_in = 22050, tf=8000,band='wb',
     >>> plt.axvline(1.71,color="red")
 
     .. figure:: images/burst.png
-       :scale: 50 %
+       :scale: 100 %
        :alt: a spectrogram with a red line marking the location of the burst
        :align: center
 
@@ -85,7 +85,7 @@ def sgram(signal,chan=0,start=0,end=-1,fs_in = 22050, tf=8000,band='wb',
     >>> ax1,f,t,Sxx = phon.sgram(x2,fs_in=fs2, preemph=0)  # plot a spectrogram of it
 
     .. figure:: images/sine_synth.png
-       :scale: 50 %
+       :scale: 90 %
        :alt: a spectrogram of sine-wave synthesis
        :align: center
 

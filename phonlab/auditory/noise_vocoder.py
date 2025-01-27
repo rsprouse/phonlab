@@ -158,7 +158,7 @@ Example
 >>> phon.sgram(y,fs_in=fs)
 
 .. figure:: images/vocode.png
-    :scale: 50 %
+    :scale: 90 %
     :alt: a spectrogram of Shannon vocoded speech
     :align: center
 

@@ -130,7 +130,7 @@ def rhythmogram(signal):
     >>> plt.set(xlabel="Time (sec)", ylabel="Frequency (Hz)")
 
      .. figure:: images/rhythmogram.png
-       :scale: 50 %
+       :scale: 80 %
        :alt: a time/frequency plot of low frequency energy in a 30 second long chunk of speech
        :align: center
 

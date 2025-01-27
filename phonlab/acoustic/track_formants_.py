@@ -952,7 +952,7 @@ the spectrogram of `x`, and the seaborn graphics package is used to add the form
 >>> seaborn.pointplot(df,x='sec',y='F4',linestyle='none',native_scale=True,marker=".",color='red')
 
 .. figure:: images/track_formants.png
-   :scale: 50 %
+   :scale: 80 %
    :alt: a spectrogram with the estimated vowel formants marked with red dots 
    :align: center
 
