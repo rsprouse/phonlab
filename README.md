@@ -1,9 +1,12 @@
-# phonlab
+# phonlab (deprecated, unmaintained)
+
+**This repository is no longer maintained. Instead, please see [phonetics-projects](https://github.com/phonetics-projects).**
+
 UC Berkeley PhonLab utilities
 
-## Installation
+## Legacy Installation
 
-To install, do:
+If you wish to install this legacy repository (not recommended), do:
 
 ```bash
 pip install git+https://github.com/rsprouse/phonlab
